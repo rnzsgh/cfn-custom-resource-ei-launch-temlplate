@@ -1,0 +1,66 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: Test Custom Resource
+
+Resources:
+
+
+  AddElasticInferenceLaunchTemplateCustomResource:
+    Type: Custom::AddElasticInferenceLaunchTemplateCustomResource
+    Properties:
+      ServiceToken: !GetAtt AddElasticInferenceLaunchTemplateCustomResourceLambda.Arn
+      ElasticInferenceType: eia1.medium
+      LaunchTemplateId: !Ref NodeLaunchTemplate
+      LaunchTemplateVersion: !GetAtt NodeLaunchTemplate.DefaultVersionNumber
+
+  CustomResourceLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+      Policies:
+        - PolicyName: custom-resource
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Resource: !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:launch-template/${NodeLaunchTemplate}
+                Effect: Allow
+                Action:
+                  - ec2:CreateLaunchTemplateVersion
+                  - ec2:ModifyLaunchTemplate
+
+  AddElasticInferenceLaunchTemplateCustomResourceLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: public-aws-serverless-repo
+        S3Key: cfn-custom-resource-ei-launch-template.zip
+      Handler: main
+      Role: !GetAtt CustomResourceLambdaExecutionRole.Arn
+      Runtime: go1.x
+      Timeout: 300
+
+  NodeLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        ImageId: ami-0abcb9f9190e867ab
+        InstanceType: m5.large
+        KeyName: rnzdev
+        BlockDeviceMappings:
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeSize: 100
+              VolumeType: gp2
+              DeleteOnTermination: true
+
