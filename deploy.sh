@@ -3,7 +3,7 @@
 rm -Rf cfn-custom-resource-ei-launch-template.zip main
 
 BUCKET_NAME=public-aws-serverless-repo
-GOOS=linux go build main.go auth.go
+GOOS=linux go build main.go
 
 zip cfn-custom-resource-ei-launch-template.zip ./main
 
