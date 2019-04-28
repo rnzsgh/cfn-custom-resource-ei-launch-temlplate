@@ -4,6 +4,12 @@
 *.dll
 *.so
 *.dylib
+*.swp
+
+main
+cfn-custom-resource-ei-launch-template
+cfn-custom-resource-ei-launch-template.zip
+
 
 # Test binary, build with `go test -c`
 *.test
