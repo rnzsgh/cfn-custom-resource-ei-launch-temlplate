@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
 	"strconv"
 	"time"
 
@@ -34,7 +33,7 @@ func handler(ctx context.Context, event cfn.Event) (physicalResourceID string, d
 	data = map[string]interface{}{}
 
 	if event.RequestType == "Create" {
-		if err = modifyLaunchTemplate(); err != nil {
+		if err = modifyLaunchTemplate(event); err != nil {
 			log.Errorf("Did not modify launch template - reason: %v", err)
 		}
 	}
@@ -42,11 +41,16 @@ func handler(ctx context.Context, event cfn.Event) (physicalResourceID string, d
 	return
 }
 
-func modifyLaunchTemplate() error {
+func modifyLaunchTemplate(event cfn.Event) error {
 
-	templateId := aws.String(os.Getenv("LAUNCH_TEMPLATE_ID"))
-	version := aws.String(os.Getenv("LAUNCH_TEMPLATE_VERSION"))
-	eiType := aws.String(os.Getenv("EI_TYPE"))
+	val, _ := event.ResourceProperties["ElasticInferenceType"].(string)
+	eiType := aws.String(val)
+
+	val, _ = event.ResourceProperties["LaunchTemplateId"].(string)
+	templateId := aws.String(val)
+
+	val, _ = event.ResourceProperties["LaunchTemplateVersion"].(string)
+	version := aws.String(val)
 
 	svc := ec2.New(session.New())
 
