@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	log "github.com/golang/glog"
+	"github.com/google/uuid"
 )
 
 func init() {
@@ -58,7 +59,7 @@ func modifyLaunchTemplate(event cfn.Event) error {
 		out, err := svc.CreateLaunchTemplateVersion(
 			&ec2.CreateLaunchTemplateVersionInput{
 				LaunchTemplateId: templateId,
-				ClientToken:      aws.String("custom-resource-create-template-version"),
+				ClientToken:      aws.String(uuid.New().String()),
 				SourceVersion:    version,
 				LaunchTemplateData: &ec2.RequestLaunchTemplateData{
 					ElasticInferenceAccelerators: []*ec2.LaunchTemplateElasticInferenceAccelerator{
@@ -84,7 +85,7 @@ func modifyLaunchTemplate(event cfn.Event) error {
 	_, err = retry(func() (*string, error) {
 		_, err := svc.ModifyLaunchTemplate(
 			&ec2.ModifyLaunchTemplateInput{
-				ClientToken:      aws.String("custom-resource-modify-template"),
+				ClientToken:      aws.String(uuid.New().String()),
 				LaunchTemplateId: templateId,
 				DefaultVersion:   newVersion,
 			},
