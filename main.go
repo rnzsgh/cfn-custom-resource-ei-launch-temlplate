@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-lambda-go/lambdacontext"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	log "github.com/golang/glog"
 	"github.com/google/uuid"
@@ -35,11 +36,42 @@ func handler(ctx context.Context, event cfn.Event) (physicalResourceID string, d
 
 	if event.RequestType == "Create" {
 		if err = modifyLaunchTemplate(event); err != nil {
-			log.Errorf("Did not modify launch template - reason: %v", err)
+			log.Errorf("Failed to modify launch template - reason: %v", err)
+		} else {
+			if err = updateAsgLaunchTemplateVersion(event); err != nil {
+				log.Errorf("Failed to modify asg version to $Default - reason: %v", err)
+			}
 		}
 	}
 
 	return
+}
+
+func updateAsgLaunchTemplateVersion(event cfn.Event) error {
+
+	if _, ok := event.ResourceProperties["AutoScalingGroupName"]; !ok {
+		log.Info("Asg name not passed as a param - doing nothing")
+		return nil
+	}
+
+	val, _ := event.ResourceProperties["AutoScalingGroupName"].(string)
+	asgName := aws.String(val)
+
+	val, _ = event.ResourceProperties["LaunchTemplateId"].(string)
+	templateId := aws.String(val)
+
+	svc := autoscaling.New(session.New())
+	_, err := svc.UpdateAutoScalingGroup(
+		&autoscaling.UpdateAutoScalingGroupInput{
+			LaunchTemplate: &autoscaling.LaunchTemplateSpecification{
+				LaunchTemplateId: templateId,
+				Version:          aws.String("$Default"),
+			},
+			AutoScalingGroupName: asgName,
+		},
+	)
+
+	return err
 }
 
 func modifyLaunchTemplate(event cfn.Event) error {
